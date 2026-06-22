@@ -1,0 +1,4 @@
+.env
+tempCodeRunnerFile.py
+*.mp3
+__pycache__/
