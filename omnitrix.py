@@ -1,20 +1,30 @@
+import os
+import sys
+import time
+from dotenv import load_dotenv
 import speech_recognition as sr
 from gtts import gTTS
 from langdetect import detect
 import pygame
 from google import genai
 from google.genai import types
-import time
-import sys
-import os
 
 # ==========================================
-# 1. CORE CONFIGURATION & AI INITIALIZATION
+# 1. SECURE CONFIGURATION & INITIALIZATION
 # ==========================================
-API_KEY = "" 
+# Load the secret environment variables from the hidden .env file
+load_dotenv()
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Safety Check: Verify the script successfully found your hidden key
+if not API_KEY:
+    print("\n[ CRITICAL ERROR: API KEY NOT DETECTED ]")
+    print("Ensure you created a file named exactly '.env' in your OMNITRIX folder.")
+    print("Inside it, you must have: GEMINI_API_KEY=your_actual_key_here")
+    sys.exit()
 
 try:
-    # Initialize the modern Google GenAI Client
+    # Initialize the Google GenAI Client securely using the hidden environment variable
     client = genai.Client(api_key=API_KEY)
     
     SYSTEM_INSTRUCTION = (
@@ -25,14 +35,14 @@ try:
         "any other language requested by the user. Always address the user as 'sir'."
     )
     
-    # Open stateful chat link using the optimized Flash-Lite model
+    # Open stateful chat link
     omnitrix_chat = client.chats.create(
         model='gemini-2.5-flash-lite',
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION
         )
     )
-    print("--- Omnitrix: Universal Cloud Voice Systems Online ---")
+    print("--- Omnitrix: Secure Cloud Voice Systems Online ---")
 
 except Exception as e:
     print(f"CRITICAL INITIALIZATION ERROR: {e}")
@@ -47,9 +57,9 @@ def omnitrix_speak(text):
     try:
         # Dynamic Global Language Detector
         try:
-            voice_lang = detect(text)  # Automatically extracts codes (e.g., 'te', 'en', 'hi', 'fr')
+            voice_lang = detect(text)  # Automatically extracts language codes
         except Exception:
-            voice_lang = 'en'  # Standard fallback if text contains only emojis or symbols
+            voice_lang = 'en'  # Fallback accent
         
         # Request speech file from Google Cloud TTS using the auto-detected language
         tts = gTTS(text=text, lang=voice_lang, slow=False)
@@ -60,7 +70,7 @@ def omnitrix_speak(text):
         pygame.mixer.music.load(temp_filename)
         pygame.mixer.music.play()
         
-        # Hold the thread execution until the voice finishes speaking
+        # Hold execution until the audio finishes playing
         while pygame.mixer.music.get_busy():
             pygame.time.Clock().tick(10)
             
@@ -72,7 +82,6 @@ def omnitrix_speak(text):
             
     except Exception as e:
         print(f"Voice Output Error: {e}")
-        # Secondary safety cleanup sequence in case of failure mid-playback
         try:
             pygame.mixer.quit()
             if os.path.exists(temp_filename):
@@ -86,7 +95,6 @@ def omnitrix_speak(text):
 def get_audio():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        # Background noise filter sequence
         r.adjust_for_ambient_noise(source, duration=1)
         print("[ Listening... Speak now, sir ]")
         try:
@@ -97,10 +105,10 @@ def get_audio():
             return None
 
 # ==========================================
-# 4. EXECUTABLE APPARATUS LOOP
+# 4. MAIN PROGRAM LOOP
 # ==========================================
 if __name__ == "__main__":
-    omnitrix_speak("Omnitrix vocal link established, sir.")
+    omnitrix_speak("Omnitrix secure vocal link established, sir.")
     
     while True:
         print("\n--------------------------------------------------")
@@ -115,24 +123,24 @@ if __name__ == "__main__":
                 print(f"You (Voice): {user_say}")
         
         if user_say and len(user_say.strip()) > 1:
-            # Command override shutdown sequence
             if "shut down" in user_say.lower() or "power off" in user_say.lower():
                 omnitrix_speak("Powering down system links. Goodbye, sir.")
                 break
             
             try:
-                # Transmit dialogue turn to Gemini Cloud
                 response = omnitrix_chat.send_message(user_say)
                 if response.text:
                     omnitrix_speak(response.text)
-                    time.sleep(2) # Protective cooldown spacer for metrics stability
+                    time.sleep(2) # Protective cooldown spacer
                 
             except Exception as e:
                 print(f"\n[ RAW SERVER ERROR -> {e} ]") 
-                # Intelligent defensive rate limit handler
                 if "429" in str(e) or "quota" in str(e).lower():
                     omnitrix_speak("Neural network recharging. Cooldown activated.")
                     time.sleep(60) 
+                elif "503" in str(e) or "unavailable" in str(e).lower():
+                    omnitrix_speak("Google servers are experiencing high traffic, sir. Retrying in ten seconds.")
+                    time.sleep(10)
                 else:
                     time.sleep(5)
         else:
